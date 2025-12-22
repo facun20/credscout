@@ -600,7 +600,6 @@ if uploaded_file is not None:
                 )
                 fig_skills.update_layout(
                     showlegend=False,
-                    yaxis={'categoryorder': 'total ascending'},
                     xaxis_title="Number of Programs",
                     yaxis_title="",
                     margin=dict(l=20, r=20, t=20, b=20),
@@ -609,7 +608,7 @@ if uploaded_file is not None:
                     plot_bgcolor='rgba(0,0,0,0)',
                     font=dict(family='Inter', color='#374151'),
                     xaxis=dict(gridcolor='#f3f4f6'),
-                    yaxis=dict(gridcolor='#f3f4f6')
+                    yaxis=dict(categoryorder='total ascending', gridcolor='#f3f4f6')
                 )
                 st.plotly_chart(fig_skills, use_container_width=True)
             
