@@ -534,7 +534,7 @@ if uploaded_file is not None:
         )
         fig_inst.update_layout(
             showlegend=False,
-            yaxis={'categoryorder': 'total ascending'},
+            yaxis={'categoryorder': 'total ascending', 'gridcolor': '#f3f4f6'},
             xaxis_title="Number of Offerings",
             yaxis_title="",
             margin=dict(l=20, r=20, t=20, b=20),
@@ -542,8 +542,7 @@ if uploaded_file is not None:
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font=dict(family='Inter', color='#374151'),
-            xaxis=dict(gridcolor='#f3f4f6'),
-            yaxis=dict(gridcolor='#f3f4f6')
+            xaxis=dict(gridcolor='#f3f4f6')
         )
         st.plotly_chart(fig_inst, use_container_width=True)
         
