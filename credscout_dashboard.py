@@ -14,13 +14,11 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Ultra-professional CSS matching Fortify design
+# Ultra-professional CSS (same as before)
 st.markdown("""
 <style>
-    /* Import professional font */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
-    /* Global styles */
     * {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
@@ -30,22 +28,17 @@ st.markdown("""
         padding: 0;
     }
     
-    /* Remove default streamlit padding */
     .block-container {
         padding-top: 2rem;
         padding-bottom: 2rem;
         max-width: 1400px;
     }
     
-    /* Header */
     .credscout-header {
         background: white;
         padding: 1.75rem 2.5rem;
         margin: -2rem -2rem 2.5rem -2rem;
         border-bottom: 1px solid #e5e7eb;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
     }
     
     .credscout-logo {
@@ -66,7 +59,6 @@ st.markdown("""
         margin-top: 0.25rem;
     }
     
-    /* Metrics - Clean and spacious */
     .metric-card {
         background: white;
         padding: 1.75rem;
@@ -104,19 +96,6 @@ st.markdown("""
         font-weight: 400;
     }
     
-    .metric-delta-up {
-        color: #10b981;
-    }
-    
-    /* Section headers */
-    .section-header {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #111827;
-        margin: 2.5rem 0 1.25rem 0;
-        letter-spacing: -0.01em;
-    }
-    
     .section-subheader {
         font-size: 0.9375rem;
         font-weight: 600;
@@ -125,7 +104,6 @@ st.markdown("""
         letter-spacing: -0.01em;
     }
     
-    /* Cards - matching Fortify style */
     .insight-card {
         background: white;
         padding: 1.5rem;
@@ -139,32 +117,25 @@ st.markdown("""
         border-color: #cbd5e1;
     }
     
-    /* Badge design - clean pills */
-    .badge-new {
+    .badge-note {
         display: inline-block;
-        background: #111827;
-        color: white;
+        background: #f3f4f6;
+        color: #6b7280;
         font-size: 0.75rem;
         font-weight: 500;
         padding: 0.25rem 0.625rem;
-        border-radius: 9999px;
+        border-radius: 6px;
         margin-left: 0.5rem;
         letter-spacing: -0.01em;
     }
     
-    /* Filters */
-    .stSelectbox label, .stSlider label, .stTextInput label {
+    .stSelectbox label, .stSlider label, .stTextInput label, .stMultiSelect label {
         font-size: 0.875rem;
         font-weight: 500;
         color: #374151;
         margin-bottom: 0.5rem;
     }
     
-    .stSelectbox, .stSlider, .stTextInput {
-        margin-bottom: 1.25rem;
-    }
-    
-    /* Buttons - clean and professional */
     .stButton>button {
         background-color: #3b82f6;
         color: white;
@@ -198,7 +169,6 @@ st.markdown("""
         background-color: #f9fafb;
     }
     
-    /* Tabs - clean design */
     .stTabs [data-baseweb="tab-list"] {
         gap: 0;
         background: white;
@@ -224,14 +194,12 @@ st.markdown("""
         box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     }
     
-    /* Tables - clean and spacious */
     .dataframe {
         font-size: 0.875rem;
         border: 1px solid #e5e7eb !important;
         border-radius: 12px;
     }
     
-    /* Sidebar */
     section[data-testid="stSidebar"] {
         background-color: white;
         border-right: 1px solid #e5e7eb;
@@ -241,51 +209,18 @@ st.markdown("""
         padding-top: 2rem;
     }
     
-    /* Remove streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    /* File uploader */
-    .stFileUploader {
-        background: white;
-        border: 2px dashed #d1d5db;
-        border-radius: 12px;
-        padding: 2rem;
-        text-align: center;
-    }
-    
-    .stFileUploader:hover {
-        border-color: #9ca3af;
-    }
-    
-    /* Info boxes */
-    .stAlert {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 1.5rem;
-    }
-    
-    /* Opportunity card styling */
-    .opportunity-card {
-        padding: 1rem;
-        background: #f9fafb;
+    .info-box {
+        background: #eff6ff;
         border-left: 3px solid #3b82f6;
+        padding: 1rem;
         border-radius: 6px;
-        margin-bottom: 0.75rem;
-    }
-    
-    .opportunity-title {
-        font-weight: 600;
-        color: #111827;
-        font-size: 0.9375rem;
-        margin-bottom: 0.25rem;
-    }
-    
-    .opportunity-subtitle {
-        font-size: 0.8125rem;
-        color: #6b7280;
+        font-size: 0.875rem;
+        color: #1e40af;
+        margin: 1rem 0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -297,6 +232,22 @@ def load_data(uploaded_file):
     df = pd.read_csv(uploaded_file)
     df['date_added'] = pd.to_datetime(df['date_added'], errors='coerce')
     return df
+
+def estimate_unique_programs(df):
+    """Calculate Lightcast-style estimates"""
+    total = len(df)
+    course_count = len(df[df['offering_level'] == 'course'])
+    
+    # Assume 4 courses ≈ 1 certificate
+    estimated_programs_from_courses = course_count / 4
+    non_course_count = total - course_count
+    estimated_unique = int(non_course_count + estimated_programs_from_courses)
+    
+    return {
+        'total': total,
+        'estimated_unique': estimated_unique,
+        'course_count': course_count
+    }
 
 # Header
 st.markdown("""
@@ -310,9 +261,9 @@ st.markdown("""
 
 # File uploader
 uploaded_file = st.file_uploader(
-    "Upload Program Dataset",
+    "Upload Processed Dataset",
     type=['csv'],
-    help="CSV file with CPE programs data",
+    help="Use the preprocessed CSV file from preprocess_cpe_data.py",
     label_visibility="collapsed"
 )
 
@@ -330,6 +281,14 @@ if uploaded_file is not None:
         placeholder="Skills, keywords, institution..."
     )
     
+    # Offering Level filter (NEW)
+    offering_levels = ['All Levels'] + sorted(df['offering_level'].dropna().unique().tolist())
+    selected_offering_level = st.sidebar.selectbox(
+        "Offering Level",
+        offering_levels,
+        help="Categorized by duration and price signals"
+    )
+    
     # Credential Type filter
     credential_types = ['All Types'] + sorted(df['credential_type'].dropna().unique().tolist())
     selected_credential = st.sidebar.selectbox(
@@ -337,11 +296,11 @@ if uploaded_file is not None:
         credential_types
     )
     
-    # Province filter
-    provinces = ['All Provinces'] + sorted(df['province'].dropna().unique().tolist())
-    selected_province = st.sidebar.selectbox(
-        "Province",
-        provinces
+    # Institution filter
+    institutions = ['All Institutions'] + sorted(df['institution'].dropna().unique().tolist())
+    selected_institution = st.sidebar.selectbox(
+        "Institution",
+        institutions
     )
     
     # Delivery Mode filter
@@ -351,28 +310,43 @@ if uploaded_file is not None:
         delivery_modes
     )
     
-    # Price range filter
-    min_price = int(df['price_cad'].min())
-    max_price = int(df['price_cad'].max())
-    price_range = st.sidebar.slider(
-        "Price Range (CAD)",
-        min_value=min_price,
-        max_value=max_price,
-        value=(min_price, max_price),
-        step=100
+    # Data Quality filter (NEW)
+    quality_levels = ['All Quality Levels', 'Good', 'Moderate', 'Poor']
+    selected_quality = st.sidebar.selectbox(
+        "Data Quality",
+        quality_levels,
+        help="Filter by data completeness"
     )
+    
+    # Price range filter
+    prices = df['price_cad'].dropna()
+    if len(prices) > 0:
+        min_price = int(prices.min())
+        max_price = int(prices.max())
+        price_range = st.sidebar.slider(
+            "Price Range (CAD)",
+            min_value=min_price,
+            max_value=max_price,
+            value=(min_price, max_price),
+            step=100
+        )
+    else:
+        price_range = (0, 10000)
     
     # Duration range filter
-    min_duration = int(df['duration_weeks'].min())
-    max_duration = int(df['duration_weeks'].max())
-    duration_range = st.sidebar.slider(
-        "Duration (weeks)",
-        min_value=min_duration,
-        max_value=max_duration,
-        value=(min_duration, max_duration)
-    )
+    durations = df['duration_weeks'].dropna()
+    if len(durations) > 0:
+        min_duration = int(durations.min())
+        max_duration = int(durations.max())
+        duration_range = st.sidebar.slider(
+            "Duration (weeks)",
+            min_value=min_duration,
+            max_value=max_duration,
+            value=(min_duration, max_duration)
+        )
+    else:
+        duration_range = (0, 52)
     
-    st.sidebar.markdown("")
     st.sidebar.markdown("")
     
     # Clear filters button
@@ -392,41 +366,51 @@ if uploaded_file is not None:
             filtered_df['description'].str.lower().str.contains(search_term_lower, na=False)
         ]
     
+    # Offering level filter
+    if selected_offering_level != 'All Levels':
+        filtered_df = filtered_df[filtered_df['offering_level'] == selected_offering_level]
+    
     # Credential type filter
     if selected_credential != 'All Types':
         filtered_df = filtered_df[filtered_df['credential_type'] == selected_credential]
     
-    # Province filter
-    if selected_province != 'All Provinces':
-        filtered_df = filtered_df[filtered_df['province'] == selected_province]
+    # Institution filter
+    if selected_institution != 'All Institutions':
+        filtered_df = filtered_df[filtered_df['institution'] == selected_institution]
     
     # Delivery mode filter
     if selected_delivery != 'All Modes':
         filtered_df = filtered_df[filtered_df['delivery_mode'] == selected_delivery]
     
+    # Data quality filter
+    if selected_quality != 'All Quality Levels':
+        filtered_df = filtered_df[filtered_df['data_quality'] == selected_quality.lower()]
+    
     # Price filter
     filtered_df = filtered_df[
-        (filtered_df['price_cad'] >= price_range[0]) &
-        (filtered_df['price_cad'] <= price_range[1])
+        (filtered_df['price_cad'].isna()) |
+        ((filtered_df['price_cad'] >= price_range[0]) & (filtered_df['price_cad'] <= price_range[1]))
     ]
     
     # Duration filter
     filtered_df = filtered_df[
-        (filtered_df['duration_weeks'] >= duration_range[0]) &
-        (filtered_df['duration_weeks'] <= duration_range[1])
+        (filtered_df['duration_weeks'].isna()) |
+        ((filtered_df['duration_weeks'] >= duration_range[0]) & (filtered_df['duration_weeks'] <= duration_range[1]))
     ]
     
-    # Key Metrics Row - Clean and spacious
+    # Calculate estimates
+    full_estimates = estimate_unique_programs(df)
+    filtered_estimates = estimate_unique_programs(filtered_df)
+    
+    # Key Metrics Row - Lightcast style
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        delta_programs = len(filtered_df) - len(df)
-        delta_text = f"{delta_programs:+,} from total" if delta_programs != 0 else "All programs"
         st.markdown(f"""
         <div class="metric-card">
-            <div class="metric-label">Total Programs</div>
+            <div class="metric-label">Total Offerings</div>
             <div class="metric-value">{len(filtered_df):,}</div>
-            <div class="metric-delta">{delta_text}</div>
+            <div class="metric-delta">~{filtered_estimates['estimated_unique']:,} unique programs</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -443,41 +427,83 @@ if uploaded_file is not None:
     with col3:
         avg_price = filtered_df['price_cad'].mean()
         median_price = filtered_df['price_cad'].median()
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-label">Average Price</div>
-            <div class="metric-value">${avg_price:,.0f}</div>
-            <div class="metric-delta">Median: ${median_price:,.0f}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        if pd.notna(avg_price):
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-label">Average Price</div>
+                <div class="metric-value">${avg_price:,.0f}</div>
+                <div class="metric-delta">Median: ${median_price:,.0f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-label">Average Price</div>
+                <div class="metric-value">N/A</div>
+                <div class="metric-delta">Insufficient data</div>
+            </div>
+            """, unsafe_allow_html=True)
     
     with col4:
         thirty_days_ago = datetime.now() - timedelta(days=30)
         new_programs = len(filtered_df[filtered_df['date_added'] >= thirty_days_ago])
         st.markdown(f"""
         <div class="metric-card">
-            <div class="metric-label">New Programs</div>
+            <div class="metric-label">Recently Added</div>
             <div class="metric-value">{new_programs}</div>
             <div class="metric-delta">Last 30 days</div>
         </div>
         """, unsafe_allow_html=True)
     
+    # Lightcast-style note
+    st.markdown(f"""
+    <div class="info-box">
+        📊 <strong>About these numbers:</strong> Total offerings includes all items in our database ({full_estimates['total']:,}). 
+        Estimated unique programs (~{full_estimates['estimated_unique']:,}) accounts for component courses that may be part of larger credentials. 
+        This is an approximation - deduplication will be refined in future releases.
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Tabs for different views
+    # Tabs
     tab1, tab2, tab3, tab4 = st.tabs(["Market Overview", "Skills Intelligence", "Program Explorer", "Competitive Analysis"])
     
     with tab1:
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown('<div class="section-subheader">Credential Distribution</div>', unsafe_allow_html=True)
-            cred_dist = filtered_df['credential_type'].value_counts()
+            st.markdown('<div class="section-subheader">By Offering Level</div>', unsafe_allow_html=True)
+            level_dist = filtered_df['offering_level'].value_counts()
+            fig_level = px.pie(
+                values=level_dist.values,
+                names=level_dist.index,
+                hole=0.4,
+                color_discrete_sequence=['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
+            )
+            fig_level.update_traces(
+                textposition='outside',
+                textinfo='label+percent',
+                textfont_size=13
+            )
+            fig_level.update_layout(
+                showlegend=False,
+                margin=dict(l=20, r=20, t=20, b=20),
+                height=320,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(family='Inter', color='#374151')
+            )
+            st.plotly_chart(fig_level, use_container_width=True)
+        
+        with col2:
+            st.markdown('<div class="section-subheader">By Credential Type</div>', unsafe_allow_html=True)
+            cred_dist = filtered_df['credential_type'].value_counts().head(6)
             fig_cred = px.pie(
                 values=cred_dist.values,
                 names=cred_dist.index,
                 hole=0.4,
-                color_discrete_sequence=['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b']
+                color_discrete_sequence=['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#6366f1']
             )
             fig_cred.update_traces(
                 textposition='outside',
@@ -494,91 +520,74 @@ if uploaded_file is not None:
             )
             st.plotly_chart(fig_cred, use_container_width=True)
         
-        with col2:
-            st.markdown('<div class="section-subheader">Delivery Mode</div>', unsafe_allow_html=True)
-            delivery_dist = filtered_df['delivery_mode'].value_counts()
-            fig_delivery = px.pie(
-                values=delivery_dist.values,
-                names=delivery_dist.index,
-                hole=0.4,
-                color_discrete_sequence=['#3b82f6', '#10b981', '#f59e0b', '#ec4899']
-            )
-            fig_delivery.update_traces(
-                textposition='outside',
-                textinfo='label+percent',
-                textfont_size=13
-            )
-            fig_delivery.update_layout(
-                showlegend=False,
-                margin=dict(l=20, r=20, t=20, b=20),
-                height=320,
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(family='Inter', color='#374151')
-            )
-            st.plotly_chart(fig_delivery, use_container_width=True)
+        st.markdown('<div class="section-subheader">Top Institutions by Volume</div>', unsafe_allow_html=True)
+        inst_counts = filtered_df['institution'].value_counts().head(15).reset_index()
+        inst_counts.columns = ['Institution', 'Offerings']
         
-        st.markdown('<div class="section-subheader">Geographic Distribution</div>', unsafe_allow_html=True)
-        province_counts = filtered_df['province'].value_counts().reset_index()
-        province_counts.columns = ['Province', 'Programs']
-        
-        fig_geo = px.bar(
-            province_counts,
-            x='Province',
-            y='Programs',
-            color='Programs',
+        fig_inst = px.bar(
+            inst_counts,
+            x='Offerings',
+            y='Institution',
+            orientation='h',
+            color='Offerings',
             color_continuous_scale=[[0, '#dbeafe'], [1, '#3b82f6']]
         )
-        fig_geo.update_layout(
+        fig_inst.update_layout(
             showlegend=False,
-            xaxis_title="",
-            yaxis_title="Number of Programs",
+            yaxis={'categoryorder': 'total ascending'},
+            xaxis_title="Number of Offerings",
+            yaxis_title="",
             margin=dict(l=20, r=20, t=20, b=20),
-            height=350,
+            height=450,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font=dict(family='Inter', color='#374151'),
             xaxis=dict(gridcolor='#f3f4f6'),
             yaxis=dict(gridcolor='#f3f4f6')
         )
-        st.plotly_chart(fig_geo, use_container_width=True)
+        st.plotly_chart(fig_inst, use_container_width=True)
         
         st.markdown('<div class="section-subheader">Price vs. Duration Analysis</div>', unsafe_allow_html=True)
-        fig_scatter = px.scatter(
-            filtered_df,
-            x='duration_weeks',
-            y='price_cad',
-            color='credential_type',
-            size='price_cad',
-            hover_data=['title', 'institution'],
-            color_discrete_sequence=['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b']
-        )
-        fig_scatter.update_layout(
-            xaxis_title="Duration (weeks)",
-            yaxis_title="Price (CAD)",
-            height=400,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(family='Inter', color='#374151'),
-            xaxis=dict(gridcolor='#f3f4f6'),
-            yaxis=dict(gridcolor='#f3f4f6'),
-            legend=dict(
-                title="",
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1
+        scatter_df = filtered_df.dropna(subset=['price_cad', 'duration_weeks'])
+        if len(scatter_df) > 0:
+            fig_scatter = px.scatter(
+                scatter_df,
+                x='duration_weeks',
+                y='price_cad',
+                color='offering_level',
+                size='price_cad',
+                hover_data=['title', 'institution'],
+                color_discrete_sequence=['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
             )
-        )
-        st.plotly_chart(fig_scatter, use_container_width=True)
+            fig_scatter.update_layout(
+                xaxis_title="Duration (weeks)",
+                yaxis_title="Price (CAD)",
+                height=400,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(family='Inter', color='#374151'),
+                xaxis=dict(gridcolor='#f3f4f6'),
+                yaxis=dict(gridcolor='#f3f4f6'),
+                legend=dict(
+                    title="",
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                )
+            )
+            st.plotly_chart(fig_scatter, use_container_width=True)
+        else:
+            st.info("Not enough data with both price and duration for scatter plot")
     
     with tab2:
         # Extract and count skills
         all_skills = []
         for skills_str in filtered_df['skills'].dropna():
-            skills_list = [s.strip() for s in str(skills_str).split(',')]
-            all_skills.extend(skills_list)
+            if skills_str != 'Unknown':
+                skills_list = [s.strip() for s in str(skills_str).split(',')]
+                all_skills.extend(skills_list)
         
         if all_skills:
             skill_counts = Counter(all_skills)
@@ -623,48 +632,7 @@ if uploaded_file is not None:
                     st.markdown(f"""
                     <div class="insight-card">
                         <div style="font-weight: 600; color: #111827; margin-bottom: 0.375rem; font-size: 0.9375rem;">{row['Skill']}</div>
-                        <div style="color: #6b7280; font-size: 0.8125rem;">{row['Count']} programs • {row['Percentage']}% of market</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-            
-            st.markdown('<div class="section-subheader">Skills Co-occurrence Insights</div>', unsafe_allow_html=True)
-            
-            col1, col2, col3 = st.columns(3)
-            
-            programs_with_skills = filtered_df[filtered_df['skills'].notna()]
-            
-            with col1:
-                python_programs = programs_with_skills[programs_with_skills['skills'].str.contains('Python', case=False, na=False)]
-                ml_in_python = python_programs[python_programs['skills'].str.contains('Machine Learning', case=False, na=False)]
-                if len(python_programs) > 0:
-                    percentage = (len(ml_in_python) / len(python_programs) * 100)
-                    st.markdown(f"""
-                    <div class="insight-card">
-                        <div style="font-size: 2.5rem; font-weight: 700; color: #3b82f6; margin-bottom: 0.5rem;">{percentage:.0f}%</div>
-                        <div style="color: #6b7280; font-size: 0.875rem;">of Python programs include Machine Learning</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-            
-            with col2:
-                leadership_programs = programs_with_skills[programs_with_skills['skills'].str.contains('Leadership', case=False, na=False)]
-                if len(leadership_programs) > 0:
-                    avg_price = leadership_programs['price_cad'].mean()
-                    st.markdown(f"""
-                    <div class="insight-card">
-                        <div style="font-size: 2.5rem; font-weight: 700; color: #8b5cf6; margin-bottom: 0.5rem;">${avg_price:,.0f}</div>
-                        <div style="color: #6b7280; font-size: 0.875rem;">average price for Leadership programs</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-            
-            with col3:
-                data_programs = programs_with_skills[
-                    programs_with_skills['skills'].str.contains('Data', case=False, na=False)
-                ]
-                if len(data_programs) > 0:
-                    st.markdown(f"""
-                    <div class="insight-card">
-                        <div style="font-size: 2.5rem; font-weight: 700; color: #ec4899; margin-bottom: 0.5rem;">{len(data_programs)}</div>
-                        <div style="color: #6b7280; font-size: 0.875rem;">programs focus on Data skills</div>
+                        <div style="color: #6b7280; font-size: 0.8125rem;">{row['Count']} mentions • {row['Percentage']}% of market</div>
                     </div>
                     """, unsafe_allow_html=True)
         else:
@@ -674,7 +642,7 @@ if uploaded_file is not None:
         col1, col2 = st.columns([3, 1])
         
         with col1:
-            st.markdown(f'<div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1rem;">Showing {len(filtered_df):,} of {len(df):,} programs</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1rem;">Showing {len(filtered_df):,} offerings (est. ~{filtered_estimates["estimated_unique"]:,} unique programs)</div>', unsafe_allow_html=True)
         
         with col2:
             csv = filtered_df.to_csv(index=False).encode('utf-8')
@@ -688,17 +656,18 @@ if uploaded_file is not None:
         
         # Format table
         display_df = filtered_df[[
-            'title', 'institution', 'credential_type', 'province', 
-            'delivery_mode', 'duration_weeks', 'price_cad'
+            'title', 'institution', 'credential_type', 'offering_level',
+            'delivery_mode', 'duration_weeks', 'price_cad', 'data_quality'
         ]].copy()
         
         display_df.columns = [
-            'Program', 'Institution', 'Type', 'Province', 
-            'Delivery', 'Duration', 'Price'
+            'Program', 'Institution', 'Type', 'Level',
+            'Delivery', 'Duration', 'Price', 'Quality'
         ]
         
-        display_df['Price'] = display_df['Price'].apply(lambda x: f"${x:,.0f}")
-        display_df['Duration'] = display_df['Duration'].apply(lambda x: f"{x}w")
+        display_df['Price'] = display_df['Price'].apply(lambda x: f"${x:,.0f}" if pd.notna(x) else "Unknown")
+        display_df['Duration'] = display_df['Duration'].apply(lambda x: f"{x:.0f}w" if pd.notna(x) else "Unknown")
+        display_df['Quality'] = display_df['Quality'].apply(lambda x: x.title() if pd.notna(x) else "Unknown")
         
         st.dataframe(
             display_df,
@@ -721,80 +690,48 @@ if uploaded_file is not None:
             
             st.markdown(f"""
             <div class="insight-card" style="padding: 2rem;">
-                <h3 style="color: #111827; margin-bottom: 1.5rem; font-size: 1.25rem; font-weight: 600;">{program['title']}</h3>
+                <h3 style="color: #111827; margin-bottom: 0.5rem; font-size: 1.25rem; font-weight: 600;">{program['title']}</h3>
+                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1.5rem;">
+                    {program['institution']} • {program['credential_type'].title()}
+                    <span class="badge-note">{program['offering_level'].replace('_', ' ').title()}</span>
+                </div>
             </div>
             """, unsafe_allow_html=True)
             
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                st.markdown("**Institution**")
-                st.write(program['institution'])
-                st.markdown("**Credential Type**")
-                st.write(program['credential_type'].title())
-                st.markdown("**Province**")
-                st.write(program['province'])
+                st.markdown("**Delivery Mode**")
+                st.write(program['delivery_mode'] if pd.notna(program['delivery_mode']) else "Unknown")
+                st.markdown("**Duration**")
+                st.write(f"{program['duration_weeks']:.0f} weeks" if pd.notna(program['duration_weeks']) else program['duration_display'])
             
             with col2:
-                st.markdown("**Delivery Mode**")
-                st.write(program['delivery_mode'].title())
-                st.markdown("**Duration**")
-                st.write(f"{program['duration_weeks']} weeks")
-                st.markdown("**Date Added**")
-                st.write(program['date_added'].strftime('%B %d, %Y'))
+                st.markdown("**Price**")
+                if pd.notna(program['price_cad']):
+                    st.write(f"${program['price_cad']:,.0f} CAD")
+                else:
+                    st.write(program['price_display'] if pd.notna(program['price_display']) else "Unknown")
+                st.markdown("**Data Quality**")
+                st.write(program['data_quality'].title())
             
             with col3:
-                st.markdown("**Price**")
-                st.write(f"${program['price_cad']:,.0f} CAD")
+                st.markdown("**Date Added**")
+                st.write(program['date_added'].strftime('%B %d, %Y') if pd.notna(program['date_added']) else "Unknown")
                 st.markdown("**Program Link**")
                 st.markdown(f"[Visit Program Page →]({program['program_url']})")
             
             st.markdown("---")
             
-            st.markdown("**Description**")
-            st.write(program['description'])
+            if pd.notna(program['description']) and program['description'] != 'Unknown':
+                st.markdown("**Description**")
+                st.write(program['description'])
             
-            st.markdown("**Skills**")
-            skills_list = [s.strip() for s in str(program['skills']).split(',')]
-            skills_html = " ".join([f'<span style="background: #eff6ff; color: #1e40af; padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.8125rem; margin-right: 0.5rem; margin-bottom: 0.5rem; display: inline-block; border: 1px solid #bfdbfe;">{skill}</span>' for skill in skills_list])
-            st.markdown(skills_html, unsafe_allow_html=True)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("**Market Context**")
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                similar_credential = df[df['credential_type'] == program['credential_type']]
-                st.metric(
-                    "Similar Programs",
-                    f"{len(similar_credential)}",
-                    delta=None
-                )
-            
-            with col2:
-                same_institution = df[df['institution'] == program['institution']]
-                st.metric(
-                    "Institution Portfolio",
-                    f"{len(same_institution)}",
-                    delta=None
-                )
-            
-            with col3:
-                similar_prices = similar_credential['price_cad']
-                if len(similar_prices) > 0:
-                    percentile = (similar_prices < program['price_cad']).sum() / len(similar_prices) * 100
-                    if percentile < 33:
-                        position = "Lower Third"
-                    elif percentile < 67:
-                        position = "Mid-Range"
-                    else:
-                        position = "Upper Third"
-                    st.metric(
-                        "Price Position",
-                        position,
-                        delta=None
-                    )
+            if pd.notna(program['skills']) and program['skills'] != 'Unknown':
+                st.markdown("**Skills**")
+                skills_list = [s.strip() for s in str(program['skills']).split(',')]
+                skills_html = " ".join([f'<span style="background: #eff6ff; color: #1e40af; padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.8125rem; margin-right: 0.5rem; margin-bottom: 0.5rem; display: inline-block; border: 1px solid #bfdbfe;">{skill}</span>' for skill in skills_list])
+                st.markdown(skills_html, unsafe_allow_html=True)
     
     with tab4:
         st.markdown('<div class="section-subheader">Top Institutions by Volume</div>', unsafe_allow_html=True)
@@ -805,10 +742,10 @@ if uploaded_file is not None:
             'duration_weeks': 'mean'
         }).round(0).reset_index()
         
-        institution_stats.columns = ['Institution', 'Programs', 'Avg Price', 'Avg Duration']
-        institution_stats = institution_stats.sort_values('Programs', ascending=False).head(10)
-        institution_stats['Avg Price'] = institution_stats['Avg Price'].apply(lambda x: f"${x:,.0f}")
-        institution_stats['Avg Duration'] = institution_stats['Avg Duration'].apply(lambda x: f"{x:.0f}w")
+        institution_stats.columns = ['Institution', 'Offerings', 'Avg Price', 'Avg Duration']
+        institution_stats = institution_stats.sort_values('Offerings', ascending=False).head(10)
+        institution_stats['Avg Price'] = institution_stats['Avg Price'].apply(lambda x: f"${x:,.0f}" if pd.notna(x) else "N/A")
+        institution_stats['Avg Duration'] = institution_stats['Avg Duration'].apply(lambda x: f"{x:.0f}w" if pd.notna(x) else "N/A")
         
         st.dataframe(
             institution_stats,
@@ -817,63 +754,31 @@ if uploaded_file is not None:
             height=380
         )
         
-        st.markdown('<div class="section-subheader">Price Distribution by Credential Type</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-subheader">Price Distribution by Offering Level</div>', unsafe_allow_html=True)
         
-        fig_box = px.box(
-            filtered_df,
-            x='credential_type',
-            y='price_cad',
-            color='credential_type',
-            color_discrete_sequence=['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b']
-        )
-        fig_box.update_layout(
-            showlegend=False,
-            xaxis_title="",
-            yaxis_title="Price (CAD)",
-            height=380,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(family='Inter', color='#374151'),
-            xaxis=dict(gridcolor='#f3f4f6'),
-            yaxis=dict(gridcolor='#f3f4f6')
-        )
-        st.plotly_chart(fig_box, use_container_width=True)
-        
-        st.markdown('<div class="section-subheader">Market Opportunity Analysis</div>', unsafe_allow_html=True)
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**Under-Served Markets**")
-            province_prog_count = df.groupby('province').size().sort_values()
-            
-            for province in province_prog_count.head(5).index:
-                count = province_prog_count[province]
-                st.markdown(f"""
-                <div class="opportunity-card" style="border-left-color: #ef4444;">
-                    <div class="opportunity-title">{province}</div>
-                    <div class="opportunity-subtitle">Only {count} programs available</div>
-                </div>
-                """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown("**Emerging Skills (Low Supply)**")
-            
-            emerging_skills = [
-                ("Generative AI", 2),
-                ("Sustainability", 3),
-                ("Cloud Security", 4),
-                ("Data Ethics", 2),
-                ("Quantum Computing", 1)
-            ]
-            
-            for skill, count in emerging_skills:
-                st.markdown(f"""
-                <div class="opportunity-card" style="border-left-color: #10b981;">
-                    <div class="opportunity-title">{skill}</div>
-                    <div class="opportunity-subtitle">Only {count} programs • High demand opportunity</div>
-                </div>
-                """, unsafe_allow_html=True)
+        price_df = filtered_df.dropna(subset=['price_cad', 'offering_level'])
+        if len(price_df) > 0:
+            fig_box = px.box(
+                price_df,
+                x='offering_level',
+                y='price_cad',
+                color='offering_level',
+                color_discrete_sequence=['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
+            )
+            fig_box.update_layout(
+                showlegend=False,
+                xaxis_title="",
+                yaxis_title="Price (CAD)",
+                height=380,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(family='Inter', color='#374151'),
+                xaxis=dict(gridcolor='#f3f4f6'),
+                yaxis=dict(gridcolor='#f3f4f6')
+            )
+            st.plotly_chart(fig_box, use_container_width=True)
+        else:
+            st.info("Insufficient price data for distribution analysis")
 
 else:
     st.markdown("""
@@ -881,33 +786,21 @@ else:
         <h2 style="color: #111827; margin-bottom: 1rem; font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em;">Welcome to CredScout Intelligence</h2>
         
         <p style="color: #6b7280; line-height: 1.7; margin-bottom: 2rem; font-size: 1rem;">
-            Upload your continuing professional education dataset to access comprehensive market intelligence, 
-            competitive analysis, and skills insights across Canada's CPE landscape.
+            Upload your preprocessed continuing professional education dataset to access comprehensive market intelligence.
         </p>
         
-        <h3 style="color: #111827; margin-bottom: 1rem; font-size: 1.125rem; font-weight: 600;">Dataset Requirements</h3>
+        <h3 style="color: #111827; margin-bottom: 1rem; font-size: 1.125rem; font-weight: 600;">Quick Start</h3>
         
-        <div style="background: #f9fafb; padding: 2rem; border-radius: 12px; font-family: 'Courier New', monospace; font-size: 0.875rem; border: 1px solid #e5e7eb;">
-            <div style="margin-bottom: 1rem; color: #111827; font-weight: 600;">Required Columns:</div>
-            
-            <div style="color: #6b7280; line-height: 1.8;">
-            • program_id<br>
-            • title<br>
-            • institution<br>
-            • province<br>
-            • credential_type<br>
-            • delivery_mode<br>
-            • duration_weeks<br>
-            • price_cad<br>
-            • skills<br>
-            • description<br>
-            • program_url<br>
-            • date_added
-            </div>
+        <div style="background: #f9fafb; padding: 2rem; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 1.5rem;">
+            <ol style="color: #374151; line-height: 1.8; margin: 0; padding-left: 1.5rem;">
+                <li>Run <code style="background: #e5e7eb; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace;">preprocess_cpe_data.py</code> on your scraped data</li>
+                <li>Upload the generated <code style="background: #e5e7eb; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace;">credscout_processed_data.csv</code></li>
+                <li>Explore market intelligence across 4 tabs</li>
+            </ol>
         </div>
         
-        <p style="color: #9ca3af; font-size: 0.875rem; margin-top: 1.5rem;">
-            Sample: credscout_test_data.csv
+        <p style="color: #9ca3af; font-size: 0.875rem;">
+            📊 Transparent metrics • Lightcast-style estimates • Professional analytics
         </p>
     </div>
     """, unsafe_allow_html=True)
