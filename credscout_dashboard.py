@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Ultra-professional CSS (same as before)
+# Ultra-professional CSS
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -57,6 +57,26 @@ st.markdown("""
         color: #6b7280;
         font-weight: 400;
         margin-top: 0.25rem;
+    }
+    
+    .search-box {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 2rem;
+    }
+    
+    .search-result-badge {
+        display: inline-block;
+        background: #eff6ff;
+        color: #1e40af;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-right: 0.5rem;
+        border: 1px solid #bfdbfe;
     }
     
     .metric-card {
@@ -222,6 +242,29 @@ st.markdown("""
         color: #1e40af;
         margin: 1rem 0;
     }
+    
+    .quick-search-tags {
+        margin-top: 1rem;
+    }
+    
+    .quick-tag {
+        display: inline-block;
+        background: white;
+        border: 1px solid #d1d5db;
+        color: #374151;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .quick-tag:hover {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -249,6 +292,19 @@ def estimate_unique_programs(df):
         'course_count': course_count
     }
 
+def extract_top_skills(df, top_n=50):
+    """Extract top skills from the dataset"""
+    all_skills = []
+    for skills_str in df['skills'].dropna():
+        if skills_str != 'Unknown':
+            skills_list = [s.strip() for s in str(skills_str).split(',')]
+            all_skills.extend(skills_list)
+    
+    if all_skills:
+        skill_counts = Counter(all_skills)
+        return [skill for skill, count in skill_counts.most_common(top_n)]
+    return []
+
 # Header
 st.markdown("""
 <div class="credscout-header">
@@ -271,17 +327,49 @@ if uploaded_file is not None:
     # Load data
     df = load_data(uploaded_file)
     
-    # Sidebar filters
-    st.sidebar.markdown("### Filters")
+    # Extract top skills for quick search
+    top_skills = extract_top_skills(df, top_n=20)
+    
+    # PROMINENT SEARCH BOX (Main area, not sidebar)
+    st.markdown('<div class="search-box">', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        search_term = st.text_input(
+            "🔍 Search the CPE Market",
+            placeholder="Try: AI, Python, Leadership, Data Science, Project Management...",
+            key="main_search",
+            label_visibility="collapsed"
+        )
+    
+    with col2:
+        if st.button("Clear Search", use_container_width=True):
+            st.session_state.main_search = ""
+            st.rerun()
+    
+    # Quick search tags
+    if not search_term and len(top_skills) > 0:
+        st.markdown('<div class="quick-search-tags" style="margin-top: 0.5rem;">', unsafe_allow_html=True)
+        st.markdown('<div style="color: #6b7280; font-size: 0.8125rem; margin-bottom: 0.5rem;">Popular searches:</div>', unsafe_allow_html=True)
+        
+        # Create clickable tags (using columns for layout)
+        tag_cols = st.columns(8)
+        for idx, skill in enumerate(top_skills[:8]):
+            with tag_cols[idx % 8]:
+                if st.button(skill, key=f"tag_{idx}", use_container_width=True):
+                    st.session_state.main_search = skill
+                    st.rerun()
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Sidebar filters (keep existing)
+    st.sidebar.markdown("### Advanced Filters")
     st.sidebar.markdown("")
     
-    # Search
-    search_term = st.sidebar.text_input(
-        "Search Programs",
-        placeholder="Skills, keywords, institution..."
-    )
-    
-    # Offering Level filter (NEW)
+    # Offering Level filter
     offering_levels = ['All Levels'] + sorted(df['offering_level'].dropna().unique().tolist())
     selected_offering_level = st.sidebar.selectbox(
         "Offering Level",
@@ -310,7 +398,7 @@ if uploaded_file is not None:
         delivery_modes
     )
     
-    # Data Quality filter (NEW)
+    # Data Quality filter
     quality_levels = ['All Quality Levels', 'Good', 'Moderate', 'Poor']
     selected_quality = st.sidebar.selectbox(
         "Data Quality",
@@ -350,13 +438,13 @@ if uploaded_file is not None:
     st.sidebar.markdown("")
     
     # Clear filters button
-    if st.sidebar.button("Reset Filters", use_container_width=True):
+    if st.sidebar.button("Reset All Filters", use_container_width=True):
         st.rerun()
     
     # Apply filters
     filtered_df = df.copy()
     
-    # Search filter
+    # Search filter (from main search box)
     if search_term:
         search_term_lower = search_term.lower()
         filtered_df = filtered_df[
@@ -402,6 +490,17 @@ if uploaded_file is not None:
     full_estimates = estimate_unique_programs(df)
     filtered_estimates = estimate_unique_programs(filtered_df)
     
+    # Search Results Badge (if searching)
+    if search_term:
+        unique_institutions_in_search = filtered_df['institution'].nunique()
+        st.markdown(f"""
+        <div style="margin-bottom: 1.5rem;">
+            <span class="search-result-badge">
+                🔍 Found {len(filtered_df):,} offerings for "{search_term}" across {unique_institutions_in_search} institutions
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+    
     # Key Metrics Row - Lightcast style
     col1, col2, col3, col4 = st.columns(4)
     
@@ -416,11 +515,12 @@ if uploaded_file is not None:
     
     with col2:
         unique_institutions = filtered_df['institution'].nunique()
+        total_institutions = df['institution'].nunique()
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-label">Institutions</div>
             <div class="metric-value">{unique_institutions}</div>
-            <div class="metric-delta">Across Canada</div>
+            <div class="metric-delta">of {total_institutions} total</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -460,7 +560,7 @@ if uploaded_file is not None:
     <div class="info-box">
         📊 <strong>About these numbers:</strong> Total offerings includes all items in our database ({full_estimates['total']:,}). 
         Estimated unique programs (~{full_estimates['estimated_unique']:,}) accounts for component courses that may be part of larger credentials. 
-        This is an approximation - deduplication will be refined in future releases.
+        <strong>Institution count ({total_institutions})</strong> reflects universities with data in this dataset.
     </div>
     """, unsafe_allow_html=True)
     
@@ -534,7 +634,6 @@ if uploaded_file is not None:
         )
         fig_inst.update_layout(
             showlegend=False,
-            yaxis={'categoryorder': 'total ascending', 'gridcolor': '#f3f4f6'},
             xaxis_title="Number of Offerings",
             yaxis_title="",
             margin=dict(l=20, r=20, t=20, b=20),
@@ -542,7 +641,8 @@ if uploaded_file is not None:
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font=dict(family='Inter', color='#374151'),
-            xaxis=dict(gridcolor='#f3f4f6')
+            xaxis=dict(gridcolor='#f3f4f6'),
+            yaxis=dict(categoryorder='total ascending', gridcolor='#f3f4f6')
         )
         st.plotly_chart(fig_inst, use_container_width=True)
         
@@ -590,9 +690,9 @@ if uploaded_file is not None:
         
         if all_skills:
             skill_counts = Counter(all_skills)
-            top_skills = skill_counts.most_common(20)
+            top_skills_data = skill_counts.most_common(20)
             
-            skills_df = pd.DataFrame(top_skills, columns=['Skill', 'Count'])
+            skills_df = pd.DataFrame(top_skills_data, columns=['Skill', 'Count'])
             
             col1, col2 = st.columns([2, 1])
             
@@ -678,59 +778,62 @@ if uploaded_file is not None:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown('<div class="section-subheader">Program Details</div>', unsafe_allow_html=True)
         
-        selected_program = st.selectbox(
-            "Select program",
-            options=filtered_df['title'].tolist(),
-            label_visibility="collapsed"
-        )
-        
-        if selected_program:
-            program = filtered_df[filtered_df['title'] == selected_program].iloc[0]
+        if len(filtered_df) > 0:
+            selected_program = st.selectbox(
+                "Select program",
+                options=filtered_df['title'].tolist(),
+                label_visibility="collapsed"
+            )
             
-            st.markdown(f"""
-            <div class="insight-card" style="padding: 2rem;">
-                <h3 style="color: #111827; margin-bottom: 0.5rem; font-size: 1.25rem; font-weight: 600;">{program['title']}</h3>
-                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1.5rem;">
-                    {program['institution']} • {program['credential_type'].title()}
-                    <span class="badge-note">{program['offering_level'].replace('_', ' ').title()}</span>
+            if selected_program:
+                program = filtered_df[filtered_df['title'] == selected_program].iloc[0]
+                
+                st.markdown(f"""
+                <div class="insight-card" style="padding: 2rem;">
+                    <h3 style="color: #111827; margin-bottom: 0.5rem; font-size: 1.25rem; font-weight: 600;">{program['title']}</h3>
+                    <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1.5rem;">
+                        {program['institution']} • {program['credential_type'].title()}
+                        <span class="badge-note">{program['offering_level'].replace('_', ' ').title()}</span>
+                    </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.markdown("**Delivery Mode**")
-                st.write(program['delivery_mode'] if pd.notna(program['delivery_mode']) else "Unknown")
-                st.markdown("**Duration**")
-                st.write(f"{program['duration_weeks']:.0f} weeks" if pd.notna(program['duration_weeks']) else program['duration_display'])
-            
-            with col2:
-                st.markdown("**Price**")
-                if pd.notna(program['price_cad']):
-                    st.write(f"${program['price_cad']:,.0f} CAD")
-                else:
-                    st.write(program['price_display'] if pd.notna(program['price_display']) else "Unknown")
-                st.markdown("**Data Quality**")
-                st.write(program['data_quality'].title())
-            
-            with col3:
-                st.markdown("**Date Added**")
-                st.write(program['date_added'].strftime('%B %d, %Y') if pd.notna(program['date_added']) else "Unknown")
-                st.markdown("**Program Link**")
-                st.markdown(f"[Visit Program Page →]({program['program_url']})")
-            
-            st.markdown("---")
-            
-            if pd.notna(program['description']) and program['description'] != 'Unknown':
-                st.markdown("**Description**")
-                st.write(program['description'])
-            
-            if pd.notna(program['skills']) and program['skills'] != 'Unknown':
-                st.markdown("**Skills**")
-                skills_list = [s.strip() for s in str(program['skills']).split(',')]
-                skills_html = " ".join([f'<span style="background: #eff6ff; color: #1e40af; padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.8125rem; margin-right: 0.5rem; margin-bottom: 0.5rem; display: inline-block; border: 1px solid #bfdbfe;">{skill}</span>' for skill in skills_list])
-                st.markdown(skills_html, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.markdown("**Delivery Mode**")
+                    st.write(program['delivery_mode'] if pd.notna(program['delivery_mode']) else "Unknown")
+                    st.markdown("**Duration**")
+                    st.write(f"{program['duration_weeks']:.0f} weeks" if pd.notna(program['duration_weeks']) else program['duration_display'])
+                
+                with col2:
+                    st.markdown("**Price**")
+                    if pd.notna(program['price_cad']):
+                        st.write(f"${program['price_cad']:,.0f} CAD")
+                    else:
+                        st.write(program['price_display'] if pd.notna(program['price_display']) else "Unknown")
+                    st.markdown("**Data Quality**")
+                    st.write(program['data_quality'].title())
+                
+                with col3:
+                    st.markdown("**Date Added**")
+                    st.write(program['date_added'].strftime('%B %d, %Y') if pd.notna(program['date_added']) else "Unknown")
+                    st.markdown("**Program Link**")
+                    st.markdown(f"[Visit Program Page →]({program['program_url']})")
+                
+                st.markdown("---")
+                
+                if pd.notna(program['description']) and program['description'] != 'Unknown':
+                    st.markdown("**Description**")
+                    st.write(program['description'])
+                
+                if pd.notna(program['skills']) and program['skills'] != 'Unknown':
+                    st.markdown("**Skills**")
+                    skills_list = [s.strip() for s in str(program['skills']).split(',')]
+                    skills_html = " ".join([f'<span style="background: #eff6ff; color: #1e40af; padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.8125rem; margin-right: 0.5rem; margin-bottom: 0.5rem; display: inline-block; border: 1px solid #bfdbfe;">{skill}</span>' for skill in skills_list])
+                    st.markdown(skills_html, unsafe_allow_html=True)
+        else:
+            st.info("No programs match your current filters")
     
     with tab4:
         st.markdown('<div class="section-subheader">Top Institutions by Volume</div>', unsafe_allow_html=True)
