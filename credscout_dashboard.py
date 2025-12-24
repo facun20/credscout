@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from collections import Counter
 import numpy as np
+import re
 
 # Page config
 st.set_page_config(
@@ -269,14 +270,499 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Load data function
+def clean_price(price_str):
+    """Extract numeric price from various formats"""
+    if pd.isna(price_str) or price_str == 'Unknown':
+        return None
+    clean = str(price_str).replace('$', '').replace(',', '').replace(' ', '').replace('CAD', '').replace('cad', '')
+    try:
+        return float(clean)
+    except:
+        return None
+
+def clean_duration(duration_str):
+    """Convert duration to weeks"""
+    if pd.isna(duration_str) or duration_str == 'Unknown':
+        return None
+    duration_str = str(duration_str).lower()
+    numbers = re.findall(r'\d+\.?\d*', duration_str)
+    if not numbers:
+        return None
+    num = float(numbers[0])
+    if 'month' in duration_str:
+        return num * 4
+    elif 'week' in duration_str:
+        return num
+    elif 'day' in duration_str:
+        return num / 7
+    elif 'hour' in duration_str:
+        return num / 40
+    elif 'year' in duration_str:
+        return num * 52
+    return None
+
+def categorize_offering_level(row):
+    """Categorize offering into levels"""
+    cred_type = str(row.get('credential_type', '')).lower()
+    price = row.get('price_cad')
+    duration = row.get('duration_weeks')
+    if (price and price < 500) or (duration and duration < 2):
+        return 'micro_learning'
+    if (price and price > 5000) or (duration and duration > 24):
+        return 'diploma'
+    if 'course' in cred_type and price and price < 1000:
+        return 'course'
+    if 'certificate' in cred_type or 'credential' in cred_type:
+        if price and price > 2000:
+            return 'certificate_advanced'
+        return 'certificate'
+    if 'professional' in cred_type or 'statement' in cred_type:
+        return 'professional_development'
+    return 'certificate'
+
 @st.cache_data
 def load_data(uploaded_file):
-    """Load and cache the CSV data"""
-    df = pd.read_csv(uploaded_file)
-    df['date_added'] = pd.to_datetime(df['date_added'], errors='coerce')
+    """Load and process CSV data - handles headerless raw data or preprocessed data"""
+    
+    # Try reading first - see if it has headers
+    try:
+        test_df = pd.read_csv(uploaded_file, nrows=1)
+        uploaded_file.seek(0)  # Reset file pointer
+        
+        # Check if first row looks like data or headers
+        if 'program_id' in test_df.columns or 'offering_level' in test_df.columns:
+            # Preprocessed data with headers
+            df = pd.read_csv(uploaded_file)
+            df['date_added'] = pd.to_datetime(df['date_added'], errors='coerce')
+            return df
+    except:
+        pass
+    
+    uploaded_file.seek(0)  # Reset file pointer
+    
+    # Assume headerless raw format
+    df = pd.read_csv(
+        uploaded_file,
+        header=None,
+        names=[
+            'institution', 'program_name', 'credential_type', 'delivery_mode',
+            'duration', 'skills', 'price', 'description', 'url', 'scraped_date'
+        ]
+    )
+    
+    # Rename to expected format
+    df['title'] = df['program_name']
+    df['program_url'] = df['url']
+    df['program_id'] = range(1, len(df) + 1)
+    df['province'] = 'Unknown'
+    
+    # Clean prices
+    df['price_cad'] = df['price'].apply(clean_price)
+    df['price_display'] = df['price']
+    
+    # Clean durations
+    df['duration_weeks'] = df['duration'].apply(clean_duration)
+    df['duration_display'] = df['duration']
+    
+    # Categorize offering levels
+    df['offering_level'] = df.apply(categorize_offering_level, axis=1)
+    
+    # Add data quality
+    def assess_quality(row):
+        unknown_count = sum([
+            1 for col in ['credential_type', 'delivery_mode', 'duration', 'skills', 'price', 'description']
+            if pd.isna(row.get(col)) or row.get(col) == 'Unknown' or row.get(col) == ''
+        ])
+        return 'poor' if unknown_count >= 4 else ('moderate' if unknown_count >= 2 else 'good')
+    
+    df['data_quality'] = df.apply(assess_quality, axis=1)
+    df['date_added'] = pd.to_datetime(df['scraped_date'], errors='coerce')
+    
     return df
 
-def estimate_unique_programs(df):
+def estimate_unique_programsimport streamlit as st
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+from collections import Counter
+import numpy as np
+import re
+
+# Page config
+st.set_page_config(
+    page_title="CredScout Intelligence Platform",
+    page_icon="🎓",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Ultra-professional CSS
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    * {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    
+    .main {
+        background-color: #f7f8fa;
+        padding: 0;
+    }
+    
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        max-width: 1400px;
+    }
+    
+    .credscout-header {
+        background: white;
+        padding: 1.75rem 2.5rem;
+        margin: -2rem -2rem 2.5rem -2rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .credscout-logo {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+        letter-spacing: -0.02em;
+    }
+    
+    .credscout-logo-accent {
+        color: #3b82f6;
+    }
+    
+    .credscout-tagline {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 400;
+        margin-top: 0.25rem;
+    }
+    
+    .search-box {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 2rem;
+    }
+    
+    .search-result-badge {
+        display: inline-block;
+        background: #eff6ff;
+        color: #1e40af;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-right: 0.5rem;
+        border: 1px solid #bfdbfe;
+    }
+    
+    .metric-card {
+        background: white;
+        padding: 1.75rem;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        height: 100%;
+        transition: all 0.2s ease;
+    }
+    
+    .metric-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+    
+    .metric-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+        margin-bottom: 0.75rem;
+        letter-spacing: -0.01em;
+    }
+    
+    .metric-value {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: #111827;
+        line-height: 1;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
+    }
+    
+    .metric-delta {
+        font-size: 0.8125rem;
+        color: #6b7280;
+        font-weight: 400;
+    }
+    
+    .section-subheader {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #374151;
+        margin: 1.5rem 0 1rem 0;
+        letter-spacing: -0.01em;
+    }
+    
+    .insight-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 1rem;
+        transition: all 0.2s ease;
+    }
+    
+    .insight-card:hover {
+        border-color: #cbd5e1;
+    }
+    
+    .badge-note {
+        display: inline-block;
+        background: #f3f4f6;
+        color: #6b7280;
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.25rem 0.625rem;
+        border-radius: 6px;
+        margin-left: 0.5rem;
+        letter-spacing: -0.01em;
+    }
+    
+    .stSelectbox label, .stSlider label, .stTextInput label, .stMultiSelect label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stButton>button {
+        background-color: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.625rem 1.25rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        letter-spacing: -0.01em;
+    }
+    
+    .stButton>button:hover {
+        background-color: #2563eb;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stDownloadButton>button {
+        background-color: white;
+        color: #374151;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        padding: 0.625rem 1.25rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+    
+    .stDownloadButton>button:hover {
+        border-color: #9ca3af;
+        background-color: #f9fafb;
+    }
+    
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0;
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        padding: 0.25rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        padding: 0.625rem 1.25rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        color: #6b7280;
+        border-radius: 8px;
+        background: transparent;
+        letter-spacing: -0.01em;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: white;
+        color: #111827;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    
+    .dataframe {
+        font-size: 0.875rem;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 12px;
+    }
+    
+    section[data-testid="stSidebar"] {
+        background-color: white;
+        border-right: 1px solid #e5e7eb;
+    }
+    
+    section[data-testid="stSidebar"] > div {
+        padding-top: 2rem;
+    }
+    
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    .info-box {
+        background: #eff6ff;
+        border-left: 3px solid #3b82f6;
+        padding: 1rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        color: #1e40af;
+        margin: 1rem 0;
+    }
+    
+    .quick-search-tags {
+        margin-top: 1rem;
+    }
+    
+    .quick-tag {
+        display: inline-block;
+        background: white;
+        border: 1px solid #d1d5db;
+        color: #374151;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .quick-tag:hover {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Load data function
+def clean_price(price_str):
+    """Extract numeric price from various formats"""
+    if pd.isna(price_str) or price_str == 'Unknown':
+        return None
+    clean = str(price_str).replace('$', '').replace(',', '').replace(' ', '').replace('CAD', '').replace('cad', '')
+    try:
+        return float(clean)
+    except:
+        return None
+
+def clean_duration(duration_str):
+    """Convert duration to weeks"""
+    if pd.isna(duration_str) or duration_str == 'Unknown':
+        return None
+    duration_str = str(duration_str).lower()
+    numbers = re.findall(r'\d+\.?\d*', duration_str)
+    if not numbers:
+        return None
+    num = float(numbers[0])
+    if 'month' in duration_str:
+        return num * 4
+    elif 'week' in duration_str:
+        return num
+    elif 'day' in duration_str:
+        return num / 7
+    elif 'hour' in duration_str:
+        return num / 40
+    elif 'year' in duration_str:
+        return num * 52
+    return None
+
+def categorize_offering_level(row):
+    """Categorize offering into levels"""
+    cred_type = str(row.get('credential_type', '')).lower()
+    price = row.get('price_cad')
+    duration = row.get('duration_weeks')
+    if (price and price < 500) or (duration and duration < 2):
+        return 'micro_learning'
+    if (price and price > 5000) or (duration and duration > 24):
+        return 'diploma'
+    if 'course' in cred_type and price and price < 1000:
+        return 'course'
+    if 'certificate' in cred_type or 'credential' in cred_type:
+        if price and price > 2000:
+            return 'certificate_advanced'
+        return 'certificate'
+    if 'professional' in cred_type or 'statement' in cred_type:
+        return 'professional_development'
+    return 'certificate'
+
+@st.cache_data
+def load_data(uploaded_file):
+    """Load and process CSV data - handles headerless raw data or preprocessed data"""
+    
+    # Try reading first - see if it has headers
+    try:
+        test_df = pd.read_csv(uploaded_file, nrows=1)
+        uploaded_file.seek(0)  # Reset file pointer
+        
+        # Check if first row looks like data or headers
+        if 'program_id' in test_df.columns or 'offering_level' in test_df.columns:
+            # Preprocessed data with headers
+            df = pd.read_csv(uploaded_file)
+            df['date_added'] = pd.to_datetime(df['date_added'], errors='coerce')
+            return df
+    except:
+        pass
+    
+    uploaded_file.seek(0)  # Reset file pointer
+    
+    # Assume headerless raw format
+    df = pd.read_csv(
+        uploaded_file,
+        header=None,
+        names=[
+            'institution', 'program_name', 'credential_type', 'delivery_mode',
+            'duration', 'skills', 'price', 'description', 'url', 'scraped_date'
+        ]
+    )
+    
+    # Rename to expected format
+    df['title'] = df['program_name']
+    df['program_url'] = df['url']
+    df['program_id'] = range(1, len(df) + 1)
+    df['province'] = 'Unknown'
+    
+    # Clean prices
+    df['price_cad'] = df['price'].apply(clean_price)
+    df['price_display'] = df['price']
+    
+    # Clean durations
+    df['duration_weeks'] = df['duration'].apply(clean_duration)
+    df['duration_display'] = df['duration']
+    
+    # Categorize offering levels
+    df['offering_level'] = df.apply(categorize_offering_level, axis=1)
+    
+    # Add data quality
+    def assess_quality(row):
+        unknown_count = sum([
+            1 for col in ['credential_type', 'delivery_mode', 'duration', 'skills', 'price', 'description']
+            if pd.isna(row.get(col)) or row.get(col) == 'Unknown' or row.get(col) == ''
+        ])
+        return 'poor' if unknown_count >= 4 else ('moderate' if unknown_count >= 2 else 'good')
+    
+    df['data_quality'] = df.apply(assess_quality, axis=1)
+    df['date_added'] = pd.to_datetime(df['scraped_date'], errors='coerce')
+    
+    return df
+
+(df):
     """Calculate Lightcast-style estimates"""
     total = len(df)
     course_count = len(df[df['offering_level'] == 'course'])
