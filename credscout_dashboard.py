@@ -380,14 +380,21 @@ def load_data(uploaded_file):
     
     return df
 
-def estimate_unique_programsimport streamlit as st
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
-from collections import Counter
-import numpy as np
-import re
+def estimate_unique_programs(df):
+    """Calculate Lightcast-style estimates"""
+    total = len(df)
+    course_count = len(df[df['offering_level'] == 'course'])
+    
+    # Assume 4 courses ≈ 1 certificate
+    estimated_programs_from_courses = course_count / 4
+    non_course_count = total - course_count
+    estimated_unique = int(non_course_count + estimated_programs_from_courses)
+    
+    return {
+        'total': total,
+        'estimated_unique': estimated_unique,
+        'course_count': course_count
+    }
 
 # Page config
 st.set_page_config(
@@ -761,22 +768,6 @@ def load_data(uploaded_file):
     df['date_added'] = pd.to_datetime(df['scraped_date'], errors='coerce')
     
     return df
-
-(df):
-    """Calculate Lightcast-style estimates"""
-    total = len(df)
-    course_count = len(df[df['offering_level'] == 'course'])
-    
-    # Assume 4 courses ≈ 1 certificate
-    estimated_programs_from_courses = course_count / 4
-    non_course_count = total - course_count
-    estimated_unique = int(non_course_count + estimated_programs_from_courses)
-    
-    return {
-        'total': total,
-        'estimated_unique': estimated_unique,
-        'course_count': course_count
-    }
 
 def extract_top_skills(df, top_n=50):
     """Extract top skills from the dataset"""
